@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0a0c">
     <title>Mauricio · Reproductor</title>
-    <meta name="application-version" content="27">
+    <meta name="application-version" content="28">
     <!-- Google APIs -->
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <style>
@@ -248,7 +248,7 @@
     <div class="brand">
         <div class="logo" data-icon="note"></div>
         <div>
-            <div class="title-row"><h1>Mauricio</h1><span class="version-top">Versión 27</span></div>
+            <div class="title-row"><h1>Mauricio</h1><span class="version-top">Versión 28</span></div>
             <p id="count">Sin canciones</p>
         </div>
     </div>
@@ -402,6 +402,10 @@
     }
 
     async function loadDriveFiles() {
+        if (!store.get('api_key', '')) {
+            showToast('Falta la clave de API. Tócala en el engranaje.', '!');
+            return;
+        }
         showToast('Cargando carpeta de Google Drive...', '⟳');
         try {
             const params = new URLSearchParams({
@@ -415,8 +419,12 @@
             const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
                 headers: { 'X-Goog-Drive-Resource-Keys': JSON.stringify({ [FOLDER_ID]: FOLDER_RESOURCE_KEY }) }
             });
-            const listData = await listRes.json();
-            if (listData.error) throw new Error(listData.error.message);
+            const listData = await listRes.json().catch(() => ({}));
+            if (!listRes.ok || listData.error) {
+                const code = listData.error && listData.error.code ? listData.error.code : listRes.status;
+                const msg = listData.error && listData.error.message ? listData.error.message : listRes.statusText;
+                throw new Error(`Lista de Drive, código ${code}: ${msg}`);
+            }
             const files = listData.files;
             if (!files || files.length === 0) {
                 showToast('No se encontraron archivos en la carpeta.', 'i');
@@ -428,7 +436,7 @@
             showToast(`¡${list.length} archivos de Drive cargados!`, '✓');
         } catch (err) {
             console.error(err);
-            showToast('Error al conectar con Google Drive.', '!');
+            showToast('Error: ' + (err && err.message ? err.message : 'sin detalle'), '!');
         }
     }
 
@@ -999,7 +1007,11 @@
         if (track.isDrive) {
             try {
                 const res = await driveFetch(track.id);
-                if (!res.ok) throw new Error('Error al conectar con Drive');
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    const msg = body.error && body.error.message ? body.error.message : res.statusText;
+                    throw new Error(`Canción "${track.name}", código ${res.status}: ${msg}`);
+                }
                 const blob = await res.blob();
                 playUrl = URL.createObjectURL(blob);
                 // Guardamos temporalmente el contenido para extraer la carátula
@@ -1009,7 +1021,7 @@
                 });
             } catch (err) {
                 console.error(err);
-                showToast('Error al reproducir archivo de Drive. Vuelve a conectar Drive.', '!');
+                showToast('Error: ' + (err && err.message ? err.message : 'no se pudo leer la canción'), '!');
                 return;
             }
         } else {
