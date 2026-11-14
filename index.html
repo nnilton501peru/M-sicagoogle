@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0a0a0c">
     <title>Mauricio · Reproductor</title>
-    <meta name="application-version" content="28">
+    <meta name="application-version" content="29">
     <!-- Google APIs -->
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <style>
@@ -248,7 +248,7 @@
     <div class="brand">
         <div class="logo" data-icon="note"></div>
         <div>
-            <div class="title-row"><h1>Mauricio</h1><span class="version-top">Versión 28</span></div>
+            <div class="title-row"><h1>Mauricio</h1><span class="version-top">Versión 29</span></div>
             <p id="count">Sin canciones</p>
         </div>
     </div>
@@ -417,7 +417,9 @@
                 key: store.get('api_key', '')
             });
             const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-                headers: { 'X-Goog-Drive-Resource-Keys': JSON.stringify({ [FOLDER_ID]: FOLDER_RESOURCE_KEY }) }
+                headers: {
+                    'X-Goog-Drive-Resource-Keys': `${FOLDER_ID}/${FOLDER_RESOURCE_KEY}`
+                }
             });
             const listData = await listRes.json().catch(() => ({}));
             if (!listRes.ok || listData.error) {
@@ -856,7 +858,7 @@
     async function driveFetch(id) {
         const key = store.get('api_key', '');
         const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${encodeURIComponent(key)}`;
-        return fetch(url, { headers: { 'X-Goog-Drive-Resource-Keys': JSON.stringify({ [FOLDER_ID]: FOLDER_RESOURCE_KEY }) } });
+        return fetch(url, { headers: { 'X-Goog-Drive-Resource-Keys': `${FOLDER_ID}/${FOLDER_RESOURCE_KEY}` } });
     }
 
     function releaseCover(t) {
